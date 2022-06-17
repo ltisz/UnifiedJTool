@@ -13,27 +13,27 @@
 ##
 ##SMPS:
 ##   Export dN/dLogDp data by ROW, COMMA as:
-##      MMDDYY-dN.txt
+##      YYYYMMDD-dN.txt
 ##   Export concentration data by ROW, COMMA as:
-##      MMDDYY-conc.txt
+##      YYYYMMDD-conc.txt
 ##
 ##PSM:
 ##   Same as output files from inversion.py:
-##      MMDDYY-PSMconc.txt
-##      MMDDYY-PSMconcdN.txt
+##      YYYYMMDD-PSMconc.txt
+##      YYYYMMDD-PSMconcdN.txt
 ##
 ##O3:
 ##   Name O3 concentration file exported from 49i as MMDDYY-O3.dat
 ##      You may need to trim this file as needed, as the 49i exports in bulk.
 ##
 ##Organics:
-##   Create a file MMDDYY-Organics.txt with each line formatted as follows:
+##   Create a file YYYYMMDD-organics.txt with each line formatted as follows:
 ##      MM/DD/YY HH:MM [MT peak area] [Isoprene peak area]
 ##      See example file for exact format
 ##   If there is GC data measured for the end of the tube, creat another called MMDDYY-OrganicsEnd.txt
 ##      with the same formatting
 ##
-##   Set "day" variable to MMDDYY, same as files
+##   Set "day" variable to YYYYMMDD, same as files
 ##
 ##   Set "PSM" and "GC" to TRUE or FALSE to match experiment. Program will work with SMPS only and static monoterpene
 ##   IMPORTANT: If GC is set to FALSE, MT and ISO must be set MANUALLY.
@@ -42,7 +42,7 @@
 
 #Set the DAY for your data
 
-day = "05202022"
+day = "20220603"
 
 ###### WHAT DATA DO YOU HAVE ######
 #This program can work in several ways
@@ -56,6 +56,7 @@ day = "05202022"
 PSM = True
 GC = False
 GCyield = False
+GCactual = False
 
 #Set MT, ISO to correct values ONLY IF GC not used for experiment
 if GC == False:
@@ -64,13 +65,13 @@ if GC == False:
 
 #RESIDENCE TIMES - Based on flow Excel sheet. Input in SECONDS
 #Inlet
-resTime1 = 1.45
+resTime1 = 2.04
 
 #FT-1
-resTime2 = 4.12
+resTime2 = 5.84
 
 #FT-2
-resTime3 = 114.49
+resTime3 = 118.3
 
 #TEMPERATURE
 T = 295.0
@@ -88,7 +89,10 @@ import matplotlib.dates as mdates
 from matplotlib.colors import LogNorm
 import os,sys
 
-os.chdir(os.path.dirname(sys.argv[0]))  #Change working folder to folder that script is in
+try:
+    os.chdir(os.path.dirname(sys.argv[0]))  #Change working folder to folder that script is in
+except:
+    pass
 
 def Reverse(lst): 
     return [ele for ele in reversed(lst)] 
@@ -168,13 +172,19 @@ restime = sum(resTimes)          #residence time
 
 filenameSMPS = "{}-conc.txt".format(day)
 filenameSMPSdN = "{}-dN.txt".format(day)
-filenameO3 = "{}-O3.dat".format(day)
+#filenameO3 = "{}-O3.dat".format(day)
+filenameO3 = "49i 061622 1409.dat"
 
 print("Collecting data...")
 #GETTING SMPS BINS
 with open(filenameSMPS, 'r') as f:
     lines = f.readlines()
-binLine = lines[17].split(',')                                      #Line 17 always contains size bins
+diffline = lines[14]
+if "TRUE" in diffline:
+    headerLine = 18
+else:
+    headerLine = 17
+binLine = lines[headerLine].split(',')                                      #Line 17 always contains size bins
 resultBins = filter(lambda x: isFloat(x[1]), enumerate(binLine))    #Filter out all non-size bin columns
 rawBins = list(resultBins)              #Rawbins is list of tuples (list index, bin)
 indexes = []
@@ -193,7 +203,7 @@ if PSM == True:
     filenamePSM = "{}-PSMconc.txt".format(day)
     filenamePSMdN = "{}-PSMconcDN.txt".format(day)
     PSMbins = linecache.getline(filenamePSMdN,1).split(",")     #Get PSM bins from frist line of PSM dN
-    PSMbins = Reverse(PSMbins)                                  #PSM dN file is in reverse size order, flip them
+    #PSMbins = Reverse(PSMbins)                                  #PSM dN file is in reverse size order, flip them
     PSMnewbins = []
     for h in PSMbins:
         PSMnewbins.append(round(float(h),2))                    #Get 2 decimal places
@@ -218,9 +228,9 @@ print("Done.")
 
 #SMPS data
 #Retrieving times for scans as well as size distributions (both raw concentration and dN/dLogDp)
-timelistSMPS = np.genfromtxt(filenameSMPS, skip_header=18, delimiter=',', usecols=(1,2), dtype="str")
-sizedistSMPSraw = np.genfromtxt(filenameSMPS, skip_header=18, delimiter=',', usecols=indexesTup)
-sizedistSMPSdNraw = np.genfromtxt(filenameSMPSdN, skip_header=18, delimiter=',', usecols=indexesTup)
+timelistSMPS = np.genfromtxt(filenameSMPS, skip_header=headerLine+1, delimiter=',', usecols=(1,2), dtype="str")
+sizedistSMPSraw = np.genfromtxt(filenameSMPS, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
+sizedistSMPSdNraw = np.genfromtxt(filenameSMPSdN, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
 
 #Ozone data
 O3list = np.genfromtxt(filenameO3, skip_header=6,usecols=(0,1,3),dtype="str")
@@ -229,9 +239,9 @@ O3list = np.genfromtxt(filenameO3, skip_header=6,usecols=(0,1,3),dtype="str")
 #Retrieving times for scans as well as size distributions (both raw concentration and dN/dLogDp)
 if PSM == True:
     timelistPSM = np.genfromtxt(filenamePSM, delimiter=',', usecols=(0), dtype='str')
-    sizedistPSMraw = np.genfromtxt(filenamePSM, delimiter=',', usecols=tuple(range(1,8)))
+    sizedistPSMraw = np.genfromtxt(filenamePSM, delimiter=',', usecols=tuple(range(1,13)))
     sizedistPSMraw = np.flip(sizedistPSMraw, 1)
-    sizedistPSMdNraw = np.genfromtxt(filenamePSMdN, skip_header=1, delimiter=',', usecols=tuple(range(1,7)))
+    sizedistPSMdNraw = np.genfromtxt(filenamePSMdN, skip_header=1, delimiter=',', usecols=tuple(range(1,12)))
 
 #Organics data
 if GC == True:
@@ -298,8 +308,8 @@ if PSM == True:
             SMPStime = fullSizeDistSMPS[j][0]
             threshold = datetime.timedelta(seconds=67)
             if SMPStime>(PSMtime-threshold) and SMPStime<(PSMtime+threshold):                                               #If SMPS time is within 67 seconds of PSM time
-                fullSizeDist.append([PSMtime, Reverse(fullSizeDistPSM[i][1].tolist()) + fullSizeDistSMPS[j][1].tolist()])   #Combine PSM and SMPS size distribution
-                fullSizeDistdN.append([PSMtime,Reverse(fullSizeDistPSMdN[i][1].tolist()) + fullSizeDistSMPSdN[j][1].tolist()])
+                fullSizeDist.append([PSMtime, fullSizeDistPSM[i][1].tolist() + fullSizeDistSMPS[j][1].tolist()])   #Combine PSM and SMPS size distribution
+                fullSizeDistdN.append([PSMtime,fullSizeDistPSMdN[i][1].tolist() + fullSizeDistSMPSdN[j][1].tolist()])
                 timelist.append(PSMtime)
             j = j+1
         i = i+1
@@ -323,13 +333,17 @@ for i in fullSizeDist:
             if orgConcs[p][0] == 0:                             #If a-p = 0, set to zero
                 apConcs = 0
             else:                                               #Else, put the GC peak area in to the calibration curve equation
-                #apConcs = (float(orgConcs[p][0])*37.446)+1.19755
-                apConcs = orgConcs[p][0]
+                if GCactual == True:
+                    apConcs = (float(orgConcs[p][0])*37.446)+1.19755
+                else:
+                    apConcs = orgConcs[p][0]
             if orgConcs[p][1] == 0:                             #Same for isoprene
                 isoConcs = 0
             else:
-                #isoConcs = (float(orgConcs[p][1])*34.646)-2.0489
-                isoConcs = orgConcs[p][1]
+                if GCactual == True:
+                    isoConcs = (float(orgConcs[p][1])*34.646)-2.0489
+                else:
+                    isoConcs = orgConcs[p][1]
             concs = [apConcs, isoConcs]                         #Make 2-element list of concentrations
             if p == len(datetimelistOrg)-1:                     #p is a check to see when to stop looking at the organics data (last scan)
                 p = p
@@ -352,7 +366,7 @@ for i in fullSizeDist:
                 q=q
             else:
                 p+=1
-            organicsListEnd.append([i[0],concsEnd)
+            organicsListEnd.append([i[0],concsEnd])
         organicsList.append([i[0],concs])
     else:
         organicsList.append([i[0],[MT, ISO]])                   #If no GC, set organics to static values set at top of program
@@ -362,7 +376,7 @@ for i in fullSizeDist:
     else:
         for m in O3list:
             if "{} {}".format(m[0],m[1]) == datetime.datetime.strftime(i[0], "%H:%M %m-%d-%y"):     #Matching ozone times to scan times; ozone monitor returns 1 reading per minute, so there should
-                if float(m[2]) < 0:                                                                 #always be a match. Negative ozone values are considered zero.
+                if float(m[2]) < 10:                                                                 #always be a match. Negative and very small ozone values are considered zero.
                     O3ListTrim.append([i[0],0])
                 else:
                     O3ListTrim.append([i[0],m[2]])
@@ -390,6 +404,9 @@ totallist = []      #Total concentration
 totalMassList = []  #Total mass
 print("Done.")
 
+print(len(fullSizeDist[0][1]))
+print(len(bins))
+
 #### [HOM], LOSS, J CALCULATIONS ####
 print("Calculating [HOM], CS, WL, J...")
 while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
@@ -397,14 +414,14 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
     CoagList = []               #Coagulation sink for this individual size distribution
     i = len(bins)-1
     j = i-1
-    total = sum(fullSizeDist[b][1])     #Total is simply the sum of all size bins
+    total = sum(fullSizeDist[b][1][6:])     #Total is simply the sum of all size bins
     totallist.append(total)             #Append total
     if total == 0:                      #Accounting for divide by zero errors
         theAvg = 0
         avgSizeList.append(theAvg)
     else:
         avgList = []
-        r = 0
+        r = 7
         while r<(len(bins)-1):
             proportion = float(fullSizeDist[b][1][r])/float(total)
             avg = proportion*float(bins[r])
@@ -451,7 +468,7 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
     Coaglisty.append(CoagSinky)
     WLListy.append(wallLosses)
 
-    Jcorr = (sum(sizeDistCorr[3:])/restime) + CoagSinky + wallLosses
+    Jcorr = (sum(sizeDistCorr[6:])/restime) + CoagSinky + wallLosses
     Jlist.append([fullSizeDist[b][0], Jcorr])
     Jlistprint.append(Jcorr)
     b+=1
@@ -476,12 +493,18 @@ mylist = []
 for i in zippy:
     mylist.append(i)
 
-outputLabel = day + datetime.datetime.strftime(datetime.datetime.now(), "%H%M")
+outputLabel = day# + datetime.datetime.strftime(datetime.datetime.now(), "%H%M")
 with open('output{}.txt'.format(outputLabel), 'w') as fp:
-    fp.write('{0}_Date, {0}_Time, {0}_O3, {0}_AvgSize, {0}_TotalConc, {0}_J, {0}_AP, {0}_ISO, {0}_pHOM, {0}_pHOM(AP), {0}_pHOM(ISO), {0}_HOM, {0}_HOM(AP), {0}_HOM(ISO), {0}_R, {0}_Mass, {0}_CS, {0}_CoagS, {0}_WL\n'.format(day))
+    fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, J_{0}, AP_{0}, ISO_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
     for x in mylist:
         fp.write(str(x).replace("(","").replace(")","").replace("'","") + "\n")
 print("Done.")
+
+with open('sizedistouput{}.txt'.format(outputLabel), 'w') as fp:
+    fp.write("Time,{}\n".format(','.join([str(y) for y in floatBins])))
+    for x in fullSizeDistdN:
+        #fp.write(','.join([str(y) for y in x]) + "\n")
+        fp.write("{},{}{}".format(x[0], ','.join([str(y) for y in x[1]]), "\n"))
 
 #### GRAPHING ####
 print("Graphing...")
