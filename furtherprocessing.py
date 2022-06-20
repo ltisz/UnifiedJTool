@@ -9,7 +9,7 @@ try:
 except:
     pass
 
-day = "20220603"
+day = "20220609"
 filename = "output{}.txt".format(day)
 filenameSD = "sizedistouput{}.txt".format(day)
 
@@ -26,6 +26,8 @@ while i<len(ozoneConcs):
     else:
         tempChunk.append(i)
     i += 1
+if len(tempChunk) > 0:
+    whereChunks.append(tuple(tempChunk))
 
 print(whereChunks)
 allData = np.genfromtxt(filename, skip_header = 1, delimiter=",")
