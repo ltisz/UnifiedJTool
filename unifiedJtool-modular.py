@@ -24,7 +24,9 @@
 ##
 ##O3:
 ##   Name O3 concentration file exported from 49i as MMDDYY-O3.dat
-##      You may need to trim this file as needed, as the 49i exports in bulk.
+##      You can use the bulk export for several days if you like,
+##      e.g. if you have O3 data in a file for 6/1 thru 6/15, you can
+##      use that one file without trimming for any data in that time
 ##
 ##Organics:
 ##   Create a file YYYYMMDD-organics.txt with each line formatted as follows:
@@ -52,6 +54,9 @@ day = "20220603"
 #If PSM data is included, change to PSM = True
 #If GC data is included (see format above) set GC = True
 #If GC data is present for both beginning and end set GCyield = True
+#
+#If you assembled organics.txt with calculated values from excel/injection,
+#   set GC = True and GCactual = True
 
 PSM = True
 GC = False
@@ -76,12 +81,14 @@ resTime3 = 118.3
 #TEMPERATURE
 T = 295.0
 
+#OZONE DATA FILE
+filenameO3 = "49i 061622 1409.dat"
+
 ######################### DO NOT CHANGE ANYTHING AFTER THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ######################
 
 #Imported libraries
 import datetime
 import numpy as np
-import math
 import linecache
 from functools import reduce
 import matplotlib.pyplot as plt
@@ -172,8 +179,6 @@ restime = sum(resTimes)          #residence time
 
 filenameSMPS = "{}-conc.txt".format(day)
 filenameSMPSdN = "{}-dN.txt".format(day)
-#filenameO3 = "{}-O3.dat".format(day)
-filenameO3 = "49i 061622 1409.dat"
 
 print("Collecting data...")
 #GETTING SMPS BINS
