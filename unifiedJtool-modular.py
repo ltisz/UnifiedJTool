@@ -44,7 +44,7 @@
 
 #Set the DAY for your data
 
-day = "20220603"
+day = "20220622"
 
 ###### WHAT DATA DO YOU HAVE ######
 #This program can work in several ways
@@ -56,33 +56,35 @@ day = "20220603"
 #If GC data is present for both beginning and end set GCyield = True
 #
 #If you assembled organics.txt with calculated values from excel/injection,
+#   set GC = True and GCactual = False
+#If organics.txt has GC peak areas,
 #   set GC = True and GCactual = True
 
 PSM = True
-GC = False
+GC = True
 GCyield = False
 GCactual = False
 
 #Set MT, ISO to correct values ONLY IF GC not used for experiment
 if GC == False:
-    MT = 243.0
+    MT = 239.0
     ISO = 0.0
 
 #RESIDENCE TIMES - Based on flow Excel sheet. Input in SECONDS
 #Inlet
-resTime1 = 2.04
+resTime1 = 2.01
 
 #FT-1
-resTime2 = 5.84
+resTime2 = 5.89
 
 #FT-2
-resTime3 = 118.3
+resTime3 = 120.11    
 
 #TEMPERATURE
 T = 295.0
 
 #OZONE DATA FILE
-filenameO3 = "49i 061622 1409.dat"
+filenameO3 = "615onward.dat"
 
 ######################### DO NOT CHANGE ANYTHING AFTER THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ######################
 
@@ -174,7 +176,7 @@ ppbconv = 2.445e10                 #ppb to molecules cm^-3
 
 #Variables
 rho = 1.5                        #Density (g cm^-3)
-h = 1.                           #Correction factor in gamma calculation, taken to be 1 with particle measurements
+h = 1.                              #Correction factor in gamma calculation, taken to be 1 with particle measurements
 restime = sum(resTimes)          #residence time
 
 filenameSMPS = "{}-conc.txt".format(day)
@@ -208,6 +210,7 @@ if PSM == True:
     filenamePSM = "{}-PSMconc.txt".format(day)
     filenamePSMdN = "{}-PSMconcDN.txt".format(day)
     PSMbins = linecache.getline(filenamePSMdN,1).split(",")     #Get PSM bins from frist line of PSM dN
+    print(PSMbins)
     #PSMbins = Reverse(PSMbins)                                  #PSM dN file is in reverse size order, flip them
     PSMnewbins = []
     for h in PSMbins:
@@ -393,7 +396,8 @@ for x in organicsList:                              #Assembling R list, Isoprene
 
 #Initializing lists and loop parameters for next calculations
 b=0
-Jlist = []          #Nucleation rate
+Jlist = []          #Nucleation rate (>1.8nm)
+J5list = []         #Nucleation rate (>5nm)
 CSlistty = []       #Condensation sink
 Coaglisty = []      #Coagulation sink
 WLListy = []        #Wall loss
@@ -404,13 +408,17 @@ HOMlistISO = []     #Isoprene HOM
 pHOMlist = []       #Total pHOM
 pHOMlistAP = []     #AP pHOM
 pHOMlistISO = []    #Isoprene pHOM
+turnoverList = []
 Jlistprint = []     #Nucleation rate as strings for output
+J5listprint = []
 totallist = []      #Total concentration
 totalMassList = []  #Total mass
 print("Done.")
 
 print(len(fullSizeDist[0][1]))
 print(len(bins))
+print(len(O3ListTrim))
+print(len(organicsList))
 
 #### [HOM], LOSS, J CALCULATIONS ####
 print("Calculating [HOM], CS, WL, J...")
@@ -461,6 +469,7 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
     pHOMlistAP.append(pHOMconcAP)
     pHOMlistISO.append(pHOMconcISO)
     pHOMlist.append(pHOMconcAP + pHOMconcISO)
+    turnoverList.append((pHOMconcAP + pHOMconcISO)*restime)
     if CS == 0:
         HOMlist.append(0)
     else:
@@ -474,8 +483,11 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
     WLListy.append(wallLosses)
 
     Jcorr = (sum(sizeDistCorr[6:])/restime) + CoagSinky + wallLosses
+    J5corr = (sum(sizeDistCorr[20:])/restime) + CoagSinky + wallLosses
     Jlist.append([fullSizeDist[b][0], Jcorr])
+    J5list.append([fullSizeDist[b][0], J5corr])
     Jlistprint.append(Jcorr)
+    J5listprint.append(J5corr)
     b+=1
 
 #### CREATING OUTPUT.TXT ####
@@ -493,14 +505,14 @@ isoList = []
 for x in organicsList:
     apList.append(x[1][0])
     isoList.append(x[1][1])
-zippy = zip(timeStrs, o3Only, avgSizeList, totallist, Jlistprint, apList, isoList, pHOMlist, pHOMlistAP, pHOMlistISO, HOMlist, HOMlistAP, HOMlistISO, rList, totalMassList, CSlistty, Coaglisty, WLListy)
+zippy = zip(timeStrs, o3Only, avgSizeList, totallist, Jlistprint, J5listprint, apList, isoList, turnoverList, pHOMlist, pHOMlistAP, pHOMlistISO, HOMlist, HOMlistAP, HOMlistISO, rList, totalMassList, CSlistty, Coaglisty, WLListy)
 mylist = []
 for i in zippy:
     mylist.append(i)
 
 outputLabel = day# + datetime.datetime.strftime(datetime.datetime.now(), "%H%M")
 with open('output{}.txt'.format(outputLabel), 'w') as fp:
-    fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, J_{0}, AP_{0}, ISO_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
+    fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, J_{0}, J5_{0}, AP_{0}, ISO_{0}, turnover_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
     for x in mylist:
         fp.write(str(x).replace("(","").replace(")","").replace("'","") + "\n")
 print("Done.")
