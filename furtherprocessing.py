@@ -9,7 +9,7 @@ try:
 except:
     pass
 
-day = "20220609"
+day = "20220622"
 filename = "output{}.txt".format(day)
 filenameSD = "sizedistouput{}.txt".format(day)
 
@@ -40,6 +40,8 @@ avgO3s = []
 avgSizes = []
 avgTotals = []
 avgJs = []
+avgJ5s = []
+avgTO = []
 avgpHOM = []
 avgpHOMap = []
 avgpHOMiso = []
@@ -52,36 +54,46 @@ avgSizeDists = []
 avgSizeDist = []
 
 for chunk in whereChunks:
-    avgO3s.append(np.average(allData[:,2][chunk[2]:chunk[-2]]))
-    avgSizes.append(np.average(allData[:,3][chunk[2]:chunk[-2]]))
-    avgTotals.append(np.average(allData[:,4][chunk[2]:chunk[-2]]))
-    avgJs.append(np.average(allData[:,5][chunk[2]:chunk[-2]]))
-    avgpHOM.append(np.average(allData[:,8][chunk[2]:chunk[-2]]))
-    avgpHOMap.append(np.average(allData[:,9][chunk[2]:chunk[-2]]))
-    avgpHOMiso.append(np.average(allData[:,10][chunk[2]:chunk[-2]]))
-    avgR.append(np.average(allData[:,14][chunk[2]:chunk[-2]]))
-    avgMass.append(np.average(allData[:,15][chunk[2]:chunk[-2]]))
-    avgCS.append(np.average(allData[:,16][chunk[2]:chunk[-2]]))
-    avgCoag.append(np.average(allData[:,17][chunk[2]:chunk[-2]]))
-    avgWL.append(np.average(allData[:,18][chunk[2]:chunk[-2]]))
+    if len(chunk) < 4:
+        pass
+    else:
+        avgO3s.append(np.average(allData[:,2][chunk[2]:chunk[-2]]))
+        avgSizes.append(np.average(allData[:,3][chunk[2]:chunk[-2]]))
+        avgTotals.append(np.average(allData[:,4][chunk[2]:chunk[-2]]))
+        avgJs.append(np.average(allData[:,5][chunk[2]:chunk[-2]]))
+        avgJ5s.append(np.average(allData[:,6][chunk[2]:chunk[-2]]))
+        avgTO.append(np.average(allData[:,9][chunk[2]:chunk[-2]]))
+        avgpHOM.append(np.average(allData[:,10][chunk[2]:chunk[-2]]))
+        avgpHOMap.append(np.average(allData[:,11][chunk[2]:chunk[-2]]))
+        avgpHOMiso.append(np.average(allData[:,12][chunk[2]:chunk[-2]]))
+        avgR.append(np.average(allData[:,16][chunk[2]:chunk[-2]]))
+        avgMass.append(np.average(allData[:,17][chunk[2]:chunk[-2]]))
+        avgCS.append(np.average(allData[:,18][chunk[2]:chunk[-2]]))
+        avgCoag.append(np.average(allData[:,19][chunk[2]:chunk[-2]]))
+        avgWL.append(np.average(allData[:,20][chunk[2]:chunk[-2]]))
 
 for chunk in whereChunks:
-    i = 0
-    while i < len(sizeDistData[0]):
-        avgSizeDist.append(np.average(sizeDistData[:,i][chunk[2]:chunk[-2]]))
-        i = i+1
-    avgSizeDists.append(avgSizeDist)
-    avgSizeDist = []
+    if len(chunk) < 4:
+        pass
+    else:
+        i = 0
+        while i < len(sizeDistData[0]):
+            avgSizeDist.append(np.average(sizeDistData[:,i][chunk[2]:chunk[-2]]))
+            i = i+1
+        avgSizeDists.append(avgSizeDist)
+        avgSizeDist = []
 
 with open("averagedOutputs{}.txt".format(day), "w") as f:
-    f.write("{}-O3, {}-Sizes, {}-Totals, {}-J, {}-pHOM, {}-pHOM(AP), {}-pHOM(iso), {}-R, {}-Mass, {}-CS, {}-Coag, WL\n")
+    f.write("{0}-O3, {0}-Sizes, {0}-Totals, {0}-J, {0}-J5, {0}-turnover, {0}-pHOM, {0}-pHOM(AP), {0}-pHOM(iso), {0}-R, {0}-Mass, {0}-CS, {0}-Coag, {0}-WL\n".format(day))
     i=0
     while i < len(avgO3s):
-        f.write("{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
+        f.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
             avgO3s[i],
             avgSizes[i],
             avgTotals[i],
             avgJs[i],
+            avgJ5s[i],
+            avgTO[i],
             avgpHOM[i],
             avgpHOMap[i],
             avgpHOMiso[i],
