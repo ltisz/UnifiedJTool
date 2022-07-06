@@ -44,7 +44,7 @@
 
 #Set the DAY for your data
 
-day = "20220622"
+day = "20220629"
 
 ###### WHAT DATA DO YOU HAVE ######
 #This program can work in several ways
@@ -84,7 +84,7 @@ resTime3 = 120.11
 T = 295.0
 
 #OZONE DATA FILE
-filenameO3 = "615onward.dat"
+filenameO3 = "20220629.dat"
 
 ######################### DO NOT CHANGE ANYTHING AFTER THIS LINE UNLESS YOU KNOW WHAT YOU'RE DOING ######################
 
@@ -102,6 +102,15 @@ try:
     os.chdir(os.path.dirname(sys.argv[0]))  #Change working folder to folder that script is in
 except:
     pass
+
+inputdir = "./inputs"
+outputdir = "./outputs"
+
+if not os.path.isdir(inputdir):
+    os.mkdir(inputdir)
+
+if not os.path.isdir(outputdir):
+    os.mkdir(outputdir)
 
 def Reverse(lst): 
     return [ele for ele in reversed(lst)] 
@@ -182,9 +191,12 @@ restime = sum(resTimes)          #residence time
 filenameSMPS = "{}-conc.txt".format(day)
 filenameSMPSdN = "{}-dN.txt".format(day)
 
+fnSMPSpath = os.path.join(inputdir, filenameSMPS)
+fnSMPSdNpath = os.path.join(inputdir, filenameSMPSdN)
+
 print("Collecting data...")
 #GETTING SMPS BINS
-with open(filenameSMPS, 'r') as f:
+with open(fnSMPSpath, 'r') as f:
     lines = f.readlines()
 diffline = lines[14]
 if "TRUE" in diffline:
@@ -204,12 +216,17 @@ indexesTup = tuple(indexes)             #Make indexes in to tuple to retrieve da
 if GC == True:
     filenameOrg = "{}-organics.txt".format(day)
 
+fnOrgpath = os.path.join(inputdir, filenameOrg)
+fnO3path = os.path.join(inputdir, filenameO3)
+
 #IF WE HAVE PSM DATA:
 if PSM == True:
     print("Combining PSM and SMPS size bins...")
     filenamePSM = "{}-PSMconc.txt".format(day)
     filenamePSMdN = "{}-PSMconcDN.txt".format(day)
-    PSMbins = linecache.getline(filenamePSMdN,1).split(",")     #Get PSM bins from frist line of PSM dN
+    fnPSMpath = os.path.join(inputdir, filenamePSM)
+    fnPSMdNpath = os.path.join(inputdir, filenamePSMdN)
+    PSMbins = linecache.getline(fnPSMdNpath,1).split(",")     #Get PSM bins from frist line of PSM dN
     print(PSMbins)
     #PSMbins = Reverse(PSMbins)                                  #PSM dN file is in reverse size order, flip them
     PSMnewbins = []
@@ -236,25 +253,25 @@ print("Done.")
 
 #SMPS data
 #Retrieving times for scans as well as size distributions (both raw concentration and dN/dLogDp)
-timelistSMPS = np.genfromtxt(filenameSMPS, skip_header=headerLine+1, delimiter=',', usecols=(1,2), dtype="str")
-sizedistSMPSraw = np.genfromtxt(filenameSMPS, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
-sizedistSMPSdNraw = np.genfromtxt(filenameSMPSdN, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
+timelistSMPS = np.genfromtxt(fnSMPSpath, skip_header=headerLine+1, delimiter=',', usecols=(1,2), dtype="str")
+sizedistSMPSraw = np.genfromtxt(fnSMPSpath, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
+sizedistSMPSdNraw = np.genfromtxt(fnSMPSdNpath, skip_header=headerLine+1, delimiter=',', usecols=indexesTup)
 
 #Ozone data
-O3list = np.genfromtxt(filenameO3, skip_header=6,usecols=(0,1,3),dtype="str")
+O3list = np.genfromtxt(fnO3path, skip_header=6,usecols=(0,1,3),dtype="str")
 
 #PSM data
 #Retrieving times for scans as well as size distributions (both raw concentration and dN/dLogDp)
 if PSM == True:
-    timelistPSM = np.genfromtxt(filenamePSM, delimiter=',', usecols=(0), dtype='str')
-    sizedistPSMraw = np.genfromtxt(filenamePSM, delimiter=',', usecols=tuple(range(1,13)))
+    timelistPSM = np.genfromtxt(fnPSMpath, delimiter=',', usecols=(0), dtype='str')
+    sizedistPSMraw = np.genfromtxt(fnPSMpath, delimiter=',', usecols=tuple(range(1,13)))
     sizedistPSMraw = np.flip(sizedistPSMraw, 1)
-    sizedistPSMdNraw = np.genfromtxt(filenamePSMdN, skip_header=1, delimiter=',', usecols=tuple(range(1,12)))
+    sizedistPSMdNraw = np.genfromtxt(fnPSMdNpath, skip_header=1, delimiter=',', usecols=tuple(range(1,12)))
 
 #Organics data
 if GC == True:
-    timelistOrganics = np.genfromtxt(filenameOrg, usecols=(0,1), dtype="str")
-    orgConcs = np.genfromtxt(filenameOrg, usecols=(2,3))
+    timelistOrganics = np.genfromtxt(fnOrgpath, usecols=(0,1), dtype="str")
+    orgConcs = np.genfromtxt(fnOrgpath, usecols=(2,3))
 if GCyield == True:
     timelistOrganics = np.genfromtxt(filenameOrgEnd, usecols=(0,1), dtype="str")
     orgConcsEnd = np.genfromtxt(filenameOrgEnd, usecols=(2,3))
@@ -409,6 +426,8 @@ pHOMlist = []       #Total pHOM
 pHOMlistAP = []     #AP pHOM
 pHOMlistISO = []    #Isoprene pHOM
 turnoverList = []
+totalSub3List = []
+dNdtSub3List = []
 Jlistprint = []     #Nucleation rate as strings for output
 J5listprint = []
 totallist = []      #Total concentration
@@ -420,6 +439,15 @@ print(len(bins))
 print(len(O3ListTrim))
 print(len(organicsList))
 
+where3 = 0
+for bin in bins:
+    if float(bin) > 3.0:
+        break
+    else:
+        where3 = where3+1
+print(where3)
+print(bins[where3])
+
 #### [HOM], LOSS, J CALCULATIONS ####
 print("Calculating [HOM], CS, WL, J...")
 while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
@@ -428,7 +456,9 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
     i = len(bins)-1
     j = i-1
     total = sum(fullSizeDist[b][1][6:])     #Total is simply the sum of all size bins
+    totalSub3 = sum(fullSizeDist[b][1][:where3])
     totallist.append(total)             #Append total
+    totalSub3List.append(totalSub3)
     if total == 0:                      #Accounting for divide by zero errors
         theAvg = 0
         avgSizeList.append(theAvg)
@@ -484,6 +514,8 @@ while b<(len(fullSizeDist)-1):  #Iterate through every size distribution
 
     Jcorr = (sum(sizeDistCorr[6:])/restime) + CoagSinky + wallLosses
     J5corr = (sum(sizeDistCorr[20:])/restime) + CoagSinky + wallLosses
+    dNdtSub3 = (totalSub3/restime)
+    dNdtSub3List.append(dNdtSub3)
     Jlist.append([fullSizeDist[b][0], Jcorr])
     J5list.append([fullSizeDist[b][0], J5corr])
     Jlistprint.append(Jcorr)
@@ -505,19 +537,22 @@ isoList = []
 for x in organicsList:
     apList.append(x[1][0])
     isoList.append(x[1][1])
-zippy = zip(timeStrs, o3Only, avgSizeList, totallist, Jlistprint, J5listprint, apList, isoList, turnoverList, pHOMlist, pHOMlistAP, pHOMlistISO, HOMlist, HOMlistAP, HOMlistISO, rList, totalMassList, CSlistty, Coaglisty, WLListy)
+zippy = zip(timeStrs, o3Only, avgSizeList, totallist, totalSub3List, dNdtSub3List, Jlistprint, J5listprint, apList, isoList, turnoverList, pHOMlist, pHOMlistAP, pHOMlistISO, HOMlist, HOMlistAP, HOMlistISO, rList, totalMassList, CSlistty, Coaglisty, WLListy)
 mylist = []
 for i in zippy:
     mylist.append(i)
 
 outputLabel = day# + datetime.datetime.strftime(datetime.datetime.now(), "%H%M")
-with open('output{}.txt'.format(outputLabel), 'w') as fp:
-    fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, J_{0}, J5_{0}, AP_{0}, ISO_{0}, turnover_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
+outputFilename = os.path.join(outputdir, 'output{}.txt'.format(outputLabel))
+outputSDFilename = os.path.join(outputdir, 'sizedistouput{}.txt'.format(outputLabel))
+
+with open(outputFilename, 'w') as fp:
+    fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, TotalSub3_{0}, dNdtSub3_{0}, J_{0}, J5_{0}, AP_{0}, ISO_{0}, turnover_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
     for x in mylist:
         fp.write(str(x).replace("(","").replace(")","").replace("'","") + "\n")
 print("Done.")
 
-with open('sizedistouput{}.txt'.format(outputLabel), 'w') as fp:
+with open(outputSDFilename, 'w') as fp:
     fp.write("Time,{}\n".format(','.join([str(y) for y in floatBins])))
     for x in fullSizeDistdN:
         #fp.write(','.join([str(y) for y in x]) + "\n")
