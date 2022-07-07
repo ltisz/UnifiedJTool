@@ -8,7 +8,8 @@
 ## Author:
 ##		Lee Tiszenkel, UAH
 ##
-##IMPORTANT - all input files need to be named and formatted by a certain convention:
+##IMPORTANT - all input files MUST be in a folder /inputs
+##and they need to be named and formatted by a certain convention:
 ##Need the following files with appropriate names:
 ##
 ##SMPS:
@@ -39,7 +40,8 @@
 ##
 ##   Set "PSM" and "GC" to TRUE or FALSE to match experiment. Program will work with SMPS only and static monoterpene
 ##   IMPORTANT: If GC is set to FALSE, MT and ISO must be set MANUALLY.
-
+##
+##   All outputs will be put in a local folder /outputs
 ######################### USER SETTINGS HERE -- CHANGE SETTINGS BASED ON YOUR DATA ###############################
 
 #Set the DAY for your data
@@ -97,6 +99,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.colors import LogNorm
 import os,sys
+from furtherprocessing import furtherProcessing
 
 try:
     os.chdir(os.path.dirname(sys.argv[0]))  #Change working folder to folder that script is in
@@ -545,6 +548,7 @@ for i in zippy:
 outputLabel = day# + datetime.datetime.strftime(datetime.datetime.now(), "%H%M")
 outputFilename = os.path.join(outputdir, 'output{}.txt'.format(outputLabel))
 outputSDFilename = os.path.join(outputdir, 'sizedistouput{}.txt'.format(outputLabel))
+outputGraphFilename = os.path.join(outputdir, "sizedist{}_{}.png".format(day, outputLabel))
 
 with open(outputFilename, 'w') as fp:
     fp.write('Date_{0}, Time_{0}, O3_{0}, AvgSize_{0}, TotalConc_{0}, TotalSub3_{0}, dNdtSub3_{0}, J_{0}, J5_{0}, AP_{0}, ISO_{0}, turnover_{0}, pHOM_{0}, pHOM(AP)_{0}, pHOM(ISO)_{0}, HOM_{0}, HOM(AP)_{0}, HOM(ISO)_{0}, R_{0}, Mass_{0}, CS_{0}, CoagS_{0}, WL_{0}\n'.format(day))
@@ -596,4 +600,6 @@ ax2 = ax.twinx()
 ax2.plot(timelistContour, [float(x) for x in o3Only], color='black')
 ax2.set_ylabel('[O3] (ppb)')
 ax2.set_xlabel('Time (LT)')
-plt.savefig("sizedist{}_{}.png".format(day, outputLabel), bbox_inches='tight', pad_inches=0) #Saves
+plt.savefig(outputGraphFilename, bbox_inches='tight', pad_inches=0) #Saves
+
+furtherProcessing(day)
